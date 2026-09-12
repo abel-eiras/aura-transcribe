@@ -13,17 +13,17 @@ ordenador. Casi entera, porque la redacción final de la nota sale por
 OpenRouter — el porqué ya lo confesé en el README de Aura, así que no me
 hagas repetirlo dos veces el mismo día.
 
-Pipeline **100 % local** de transcripción con diarización (quién habla cuándo)
-para notas de voz, con un paso opcional que convierte cada transcripción en
-una nota de Obsidian ya redactada. Pensado para el flujo "graba una nota de
-voz en el móvil → aparece transcrita, con hablantes separados, en tu vault".
-
 Este pipeline nació para procesar los audios que graba [Aura], una app
 Android para tomar notas de voz. No depende de ella ni la necesita: cualquier
 carpeta donde vayan apareciendo audios (grabados con el móvil que sea,
 copiados a mano, sincronizados como prefieras) sirve como entrada. Si buscas
 la app que genera esos audios, está en
 [github.com/abel-eiras/Aura](https://github.com/abel-eiras/Aura).
+
+Pipeline **100 % local** de transcripción con diarización (quién habla cuándo)
+para notas de voz, con un paso opcional que convierte cada transcripción en
+una nota de Obsidian ya redactada. Pensado para el flujo "graba una nota de
+voz en el móvil → aparece transcrita, con hablantes separados, en tu vault".
 
 - **Transcripción y diarización: nunca salen de tu máquina.** [WhisperX]
   (sobre [faster-whisper]) para el reconocimiento de voz y el alineamiento por
