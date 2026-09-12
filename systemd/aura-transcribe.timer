@@ -1,0 +1,15 @@
+[Unit]
+Description=Ejecuta aura-transcribe.service cada 15 minutos
+
+[Timer]
+# Si sincronizas con un servicio externo en un timer aparte, desfasa este
+# respecto a aquel (p. ej. OnBootSec=7min si el otro usa OnBootSec=2min) para
+# que la transcripción arranque con los audios nuevos ya bajados.
+OnBootSec=7min
+OnUnitActiveSec=15min
+# Pequeño jitter para que varios timers no converjan por acumulación de retrasos.
+RandomizedDelaySec=90
+Persistent=true
+
+[Install]
+WantedBy=timers.target

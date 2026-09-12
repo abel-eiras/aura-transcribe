@@ -1,0 +1,66 @@
+#!/usr/bin/env bash
+# Envoltorio que ejecuta el pipeline desde systemd --user.
+#
+# ESTE FICHERO ES UNA PLANTILLA: instalar.sh sustituye __AURA_PROYECTO__ y
+# __AURA_UV__ por rutas absolutas y escribe el resultado en ~/.local/bin. No
+# lo copies ni lo enlaces a mano: no funcionará con los marcadores sin sustituir.
+#
+# systemd --user arranca esto SIN entorno interactivo: no hay PATH de usuario, ni
+# venv activado, ni shell de login. Por eso aquí todo va con rutas absolutas.
+#
+# Convenio de códigos de salida (para no ensuciar el estado de la unidad):
+#   0  -> todo bien, incluido "no había nada que hacer" y "ya hay otra pasada"
+#   !0 -> fallo real (algún audio falló, config rota, ...)
+#
+# Tras transcribir, se lanza también `notas` (sin --backlog: solo lo nuevo de
+# transcription/, nunca el histórico de transcription/sent/). Es seguro
+# lanzarlo en cada pasada del timer aunque `run` no haya procesado nada: cada
+# JSON que ya tiene su nota (por nombre de fichero, ver notas.py) se salta sin
+# volver a llamar al modelo, así que un audio dispara como mucho UNA llamada a
+# OpenRouter, sin importar cuántas veces se dispare el timer al día.
+
+set -euo pipefail
+
+PROYECTO="__AURA_PROYECTO__"
+UV="__AURA_UV__"
+
+if [[ ! -x "$UV" ]]; then
+  echo "No encuentro uv en $UV" >&2
+  exit 1
+fi
+
+if [[ ! -d "$PROYECTO" ]]; then
+  echo "No encuentro el proyecto en $PROYECTO" >&2
+  exit 1
+fi
+
+# --frozen: se usa el uv.lock tal cual, sin volver a resolver dependencias.
+# El timer no debe ponerse a hablar con la red ni a recompilar nada (más allá
+# de la propia llamada a OpenRouter de `notas`, que es intencionada).
+set +e
+"$UV" run --frozen --directory "$PROYECTO" aura-transcribe run "$@"
+codigo_run=$?
+set -e
+
+# 2 = otra ejecución del pipeline tenía el flock (p. ej. una pasada manual en
+# marcha). No es un error: simplemente no tocaba hacer nada ahora.
+if [[ $codigo_run -eq 2 ]]; then
+  echo "Ya había otra ejecución en marcha; no hago nada."
+  codigo_run=0
+fi
+
+set +e
+"$UV" run --frozen --directory "$PROYECTO" aura-transcribe notas
+codigo_notas=$?
+set -e
+
+# 3 = [notas] activo = false en config.toml: apagado a propósito, no es fallo.
+if [[ $codigo_notas -eq 3 ]]; then
+  echo "Generación de notas desactivada ([notas] activo = false); no hago nada."
+  codigo_notas=0
+fi
+
+if [[ $codigo_run -ne 0 ]]; then
+  exit $codigo_run
+fi
+exit $codigo_notas

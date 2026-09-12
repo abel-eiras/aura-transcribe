@@ -1,0 +1,211 @@
+# Configuración de aura-transcribe.
+#
+# Copia este fichero a config.toml (en la raíz del repo) y edítalo a tu gusto.
+# install.sh puede generarlo por ti a partir de las respuestas del asistente.
+# Todas las rutas relativas se resuelven contra [rutas].base.
+#
+# Nada de lo que hay aquí se manda a ningún sitio salvo lo descrito en
+# [notas]: la transcripción (ASR + diarización) es 100 % local.
+
+[rutas]
+# Carpeta donde aparecen los audios nuevos a transcribir (por ejemplo, la
+# carpeta a la que tu móvil sube las notas de voz vía Syncthing, una app de
+# sincronización de Drive, un `rclone bisync`, o simplemente copiándolos a
+# mano). Por defecto: ~/AudioNotes/aura
+base = "~/AudioNotes/aura"
+# Punto de montaje que debe estar montado antes de tocar nada, para carpetas
+# que viven en una unidad que puede aparecer desmontada (una unidad de red, un
+# mount de rclone, un disco externo...). Vacío (por defecto) = no se comprueba
+# ningún montaje: úsalo si `base` es simplemente una carpeta local normal.
+punto_montaje = ""
+# Subcarpetas (relativas a base).
+procesados = "processed"
+transcripciones = "transcription"
+enviados = "transcription/sent"
+fallidos = "failed"
+# Vacío = se usa el temporal del sistema (/tmp). Nunca se escribe scratch en `base`.
+scratch = ""
+# Vacío = <scratch>/aura-transcribe.lock
+fichero_lock = ""
+# Lock opcional COMPARTIDO con un proceso externo de sincronización (p. ej. un
+# script tuyo que hace `flock -n` sobre este mismo fichero antes de un
+# `rclone bisync`). Vacío (por defecto) = sin coordinación con nada externo.
+# Ver la sección "Coordinación con un sincronizador externo" del README.
+lock_sincronizacion = ""
+# Vacíos = ~/.local/state/aura-transcribe/...
+fichero_log = ""
+fichero_estado = ""
+
+[audio]
+extensiones = [".wav", ".ogg", ".m4a", ".mp3", ".opus"]
+# Un fichero se ignora si su tamaño o mtime cambiaron hace menos de estos segundos
+# (evita procesar una subida a medias).
+segundos_estabilidad = 20
+frecuencia_destino = 16000
+
+[asr]
+modelo = "large-v3"
+# int8_float16 es más rápido y cabe en menos VRAM; float16 da algo más de
+# calidad si tu GPU tiene margen. En CPU se usa automáticamente int8.
+tipo_computo = "int8_float16"
+dispositivo = "cuda"
+tamano_lote = 4
+usar_vad = true
+
+[idioma]
+# Detección restringida a propósito: nunca "libre". Solo se contemplan
+# `por_defecto` y, si lo configuras, un `idioma_alternativo`; cualquier otra
+# detección se descarta y se usa `por_defecto`. Así un audio corto y ruidoso
+# nunca acaba transcrito en un idioma cualquiera.
+por_defecto = "es"
+# Idiomas que el pipeline acepta como resultado final.
+permitidos = ["es"]
+# Ejemplo: si trabajas en una zona con dos lenguas (es/gl, es/ca, fr/nl...),
+# descomenta y ajusta esto. Vacío = detección de un solo idioma.
+# idioma_alternativo = "gl"
+# permitidos = ["es", "gl"]
+# Códigos que el detector suele confundir con el idioma alternativo (dos
+# lenguas próximas se confunden entre sí en los primeros segundos de audio).
+# confundibles_con_alternativo = ["gl", "pt"]
+# Probabilidad mínima para aceptar el idioma alternativo.
+umbral_alternativo = 0.5
+# Ventana de detección a partir del primer tramo con voz.
+segundos_deteccion = 45
+# Alineamiento forzado a nivel de palabra.
+alinear = true
+# Idiomas sin modelo de alineamiento disponible (se salta y se asigna el
+# hablante por segmento entero en vez de por palabra).
+# idiomas_sin_alineamiento = ["gl"]
+idiomas_sin_alineamiento = []
+
+[diarizacion]
+activa = true
+modelo = "pyannote/speaker-diarization-community-1"
+max_hablantes = 8
+min_hablantes = 1
+# Si la diarización revienta por falta de VRAM, reintentar en CPU.
+reserva_cpu = true
+
+[limpieza]
+# Se fusionan segmentos consecutivos del mismo hablante separados por menos de esto.
+hueco_fusion_ms = 800
+# Se descartan segmentos más cortos que esto sin texto útil.
+duracion_minima_s = 0.3
+
+[salida]
+escribir_txt = false
+incluir_palabras = false
+
+[errores]
+intentos_maximos = 3
+
+[notas]
+# Genera notas de Obsidian a partir de las transcripciones vía OpenRouter (ver
+# la sección "Notas de Obsidian" del README). false por defecto A PROPÓSITO:
+# activarlo implica mandar el texto completo de las transcripciones a un
+# servicio externo, y eso lo decide quien lo activa, no el valor por defecto.
+activo = false
+# Relativo a la raíz del repo (no a [rutas].base).
+vault = "vault"
+# Modelo por defecto para clasificar y redactar. Cualquier categoría puede
+# poner su propio `modelo` más abajo para usar uno distinto (p. ej. uno con
+# mejor soporte de un idioma minoritario).
+modelo = "deepseek/deepseek-v4-flash"
+
+# --- Tipos de nota -----------------------------------------------------
+# Cada [[notas.categorias]] es un tipo de nota que el pipeline puede generar.
+# No hay ninguna categoría especial en el código: puedes borrar estas tres,
+# renombrarlas, o añadir las tuyas. El LLM elige una categoría por
+# transcripción usando solo el campo `criterio` de cada una; luego la redacta
+# con el `prompt_redaccion` de esa categoría. Si quitas TODAS las categorías
+# de aquí, se usan las tres de ejemplo de abajo (las mismas, por defecto).
+#
+# Campos obligatorios: id, etiqueta, carpeta, tag, criterio, prompt_redaccion.
+# Campo opcional: modelo (override de [notas].modelo para esta categoría).
+
+[[notas.categorias]]
+id = "reunion"
+etiqueta = "Reunión"
+carpeta = "Reuniones"
+tag = "reunion"
+criterio = "registro más o menos formal, varios hablantes, temas de trabajo/organización"
+prompt_redaccion = """
+Redactas el acta de una reunión a partir de la transcripción literal que te \
+paso (con hablantes SPEAKER_00, SPEAKER_01...). No es una transcripción ni un \
+resumen genérico: para cada tema tratado cuenta la sustancia —de qué se habló, \
+qué se acordó y qué quedó sin acordar o pendiente de decidir—, aunque el tema \
+haya ocupado media hora de conversación. No reproduzcas la conversación \
+intervención por intervención; sí conserva los detalles concretos que \
+importan (cifras, nombres, plazos, condiciones). Responde en Markdown con \
+EXACTAMENTE estas secciones, en este orden, y nada más:
+
+## Asistentes
+## Puntos tratados
+## Decisiones tomadas
+## Tareas
+## Pendientes
+
+En «Asistentes» lista las etiquetas de hablante y, solo si el nombre real se \
+menciona explícitamente en el audio, añádelo entre paréntesis. En «Puntos \
+tratados» un punto por tema, con su desenlace (qué se acordó o no), no una \
+crónica de cómo se discutió. En «Tareas» indica el responsable si se \
+menciona. Si una sección no tiene contenido, escribe «Ninguna».
+"""
+
+[[notas.categorias]]
+id = "visita_cliente"
+etiqueta = "Visita cliente"
+carpeta = "Visitas clientes"
+tag = "visita-cliente"
+criterio = "registro conversacional/informal con un cliente; se distingue de una reunión por el tono, aunque el tema también sea de trabajo"
+prompt_redaccion = """
+Redactas la minuta de una visita a un cliente a partir de la transcripción \
+literal que te paso (hablantes SPEAKER_00, SPEAKER_01...), de registro \
+conversacional. No es una transcripción ni un resumen genérico: para cada \
+tema cuenta la sustancia —de qué se habló y en qué quedó—, con los detalles \
+concretos que importan (cifras, plazos, condiciones), sin reproducir la \
+conversación intervención por intervención. Responde en Markdown con \
+EXACTAMENTE estas secciones, en este orden, y nada más:
+
+## Contexto
+## Temas tratados
+## Peticiones del cliente
+## Compromisos adquiridos
+## Seguimiento
+
+Si una sección no tiene contenido, escribe «Ninguno».
+"""
+
+[[notas.categorias]]
+id = "nota_personal"
+etiqueta = "Nota personal"
+carpeta = "Notas personales"
+tag = "nota-personal"
+criterio = "sin relación temática con trabajo ni clientes"
+# Ejemplo de override: si tus notas personales sueles grabarlas en otro
+# idioma que un modelo distinto redacta mejor, pon aquí ese modelo.
+# modelo = "openai/gpt-5.1"
+prompt_redaccion = """
+A partir de la transcripción literal de una nota de voz personal que te paso, \
+redacta una nota estructurada. No es una transcripción ni un resumen \
+genérico: para cada idea o tema recoge la sustancia y los detalles concretos \
+que importan, sin reproducir el audio palabra por palabra. Responde en \
+Markdown con EXACTAMENTE estas secciones, en este orden, y nada más:
+
+## Contenido
+## Tareas o recordatorios
+
+Si «Tareas o recordatorios» no tiene contenido, escribe «Ninguna».
+"""
+
+[ejecucion]
+# Cada audio se procesa en su PROPIO subproceso, que muere al terminar. En una
+# GPU con poca VRAM esto evita que la fragmentación acumulada de un proceso de
+# vida larga reviente un lote largo con "CUDA out of memory". Si tu GPU tiene
+# VRAM de sobra, puedes poner esto en false (o usar --sin-aislamiento) para
+# ganar algo de velocidad por lote.
+aislar_subproceso = true
+# Segundos que se espera al lock de sincronización externo (si lo has
+# configurado en [rutas] lock_sincronizacion) antes de dar el audio por
+# fallido.
+espera_lock_sincronizacion = 120

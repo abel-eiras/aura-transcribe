@@ -1,0 +1,23 @@
+[Unit]
+Description=Transcribe con diarización los audios nuevos y genera notas de Obsidian
+# Si tienes un sincronizador externo (rclone bisync, etc.) y systemd encola las
+# dos unidades en la misma transacción, ordena que sincronice antes de
+# transcribir. Esto NO crea una dependencia dura: si esa unidad no existe o no
+# corre, aura-transcribe.service se ejecuta igual. Cambia el nombre por el de
+# tu propia unidad, o borra la línea si no sincronizas nada externamente.
+After=sync-aura-drive.service
+
+[Service]
+Type=oneshot
+ExecStart=%h/.local/bin/aura-transcribe.sh
+# La transcripción compite con la sesión de escritorio por CPU y GPU.
+Nice=10
+# Sin entorno gráfico ni shell de login: PATH explícito (uv, ffmpeg, ffprobe).
+Environment=PATH=%h/.local/bin:/usr/local/bin:/usr/bin:/bin
+# Un audio largo puede tardar varios minutos y un lote entero pasar de media
+# hora. El plazo por defecto de systemd para Type=oneshot (90 s) mataría la
+# pasada a medias.
+TimeoutStartSec=infinity
+
+[Install]
+WantedBy=default.target

@@ -1,0 +1,17 @@
+.venv/
+__pycache__/
+*.pyc
+.pytest_cache/
+.ruff_cache/
+.mypy_cache/
+
+# Nunca versionar secretos: las claves viven en ~/.config/aura-transcribe/env
+env
+*.env
+
+# Configuración local de cada instalación (install.sh genera esto a partir
+# de config.example.toml). No es una plantilla: puede llevar rutas propias.
+config.toml
+
+# El vault de Obsidian generado es contenido del usuario, nunca del repo.
+/vault/
