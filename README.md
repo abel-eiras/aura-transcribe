@@ -1,5 +1,18 @@
 # aura-transcribe
 
+## El porqué
+
+[Aura](https://github.com/abel-eiras/Aura) (la app hermana de este repo) ya
+resuelve la mitad barata del cacharrito de marras: grabar. Pero para que eso
+sirva de algo hace falta la otra mitad —transcribir, separar quién habla y
+escribir una nota decente—, que es justo la parte que esos trastos te cobran
+aparte, mes a mes, como si fuera brujería.
+
+No lo es. Aquí tienes esa otra mitad, y corre casi entera en tu propio
+ordenador. Casi entera, porque la redacción final de la nota sale por
+OpenRouter — el porqué ya lo confesé en el README de Aura, así que no me
+hagas repetirlo dos veces el mismo día.
+
 Pipeline **100 % local** de transcripción con diarización (quién habla cuándo)
 para notas de voz, con un paso opcional que convierte cada transcripción en
 una nota de Obsidian ya redactada. Pensado para el flujo "graba una nota de
