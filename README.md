@@ -5,6 +5,13 @@ para notas de voz, con un paso opcional que convierte cada transcripción en
 una nota de Obsidian ya redactada. Pensado para el flujo "graba una nota de
 voz en el móvil → aparece transcrita, con hablantes separados, en tu vault".
 
+Este pipeline nació para procesar los audios que graba [Aura], una app
+Android para tomar notas de voz. No depende de ella ni la necesita: cualquier
+carpeta donde vayan apareciendo audios (grabados con el móvil que sea,
+copiados a mano, sincronizados como prefieras) sirve como entrada. Si buscas
+la app que genera esos audios, está en
+[github.com/abel-eiras/Aura](https://github.com/abel-eiras/Aura).
+
 - **Transcripción y diarización: nunca salen de tu máquina.** [WhisperX]
   (sobre [faster-whisper]) para el reconocimiento de voz y el alineamiento por
   palabra; [pyannote] para separar hablantes. Todo corre en local (GPU NVIDIA
@@ -307,6 +314,7 @@ y mockean las llamadas a OpenRouter.
 
 Ver [CONTRIBUTING.md](CONTRIBUTING.md).
 
+[Aura]: https://github.com/abel-eiras/Aura
 [WhisperX]: https://github.com/m-bain/whisperX
 [faster-whisper]: https://github.com/SYSTRAN/faster-whisper
 [pyannote]: https://github.com/pyannote/pyannote-audio
